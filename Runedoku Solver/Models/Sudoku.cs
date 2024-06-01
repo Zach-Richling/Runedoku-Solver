@@ -4,6 +4,7 @@ using Runedoku_Solver.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -23,6 +24,8 @@ namespace Runedoku_Solver.Models
 
         public bool PlaceActive { get; set; } = false;
 
+        private object _lock = new object();
+
         public Sudoku(int size)
         {
             _size = size;
@@ -32,40 +35,46 @@ namespace Runedoku_Solver.Models
 
         public void InitializeEmptyGrid()
         {
-            var rand = new Random();
-            for (int r = 0; r < _size; r++)
+            lock (_lock) 
             {
-                for (int c = 0; c < _size; c++)
+                var rand = new Random();
+                for (int r = 0; r < _size; r++)
                 {
-                    Grid[r, c] = new Rune(RuneType.None);
+                    for (int c = 0; c < _size; c++)
+                    {
+                        Grid[r, c] = new Rune(RuneType.None);
+                    }
                 }
-            }
 
-            _hasNormalized = false;
+                _hasNormalized = false;
+            }
         }
 
         public void GenerateGrid()
         {
-            InitializeEmptyGrid();
-            int numRevealed = 24;
-
-            var rand = new Random();
-
-            var curRevealed = 0;
-            while(curRevealed < numRevealed)
+            lock (_lock) 
             {
-                var r = rand.Next(0, _size - 1);
-                var c = rand.Next(0, _size - 1);
+                InitializeEmptyGrid();
+                int numRevealed = 17;
 
-                for (var i = 1; i <= _size; i++)
+                var rand = new Random();
+
+                var curRevealed = 0;
+                while (curRevealed < numRevealed)
                 {
-                    var runeType = (RuneType)i;
-                    if (IsValid(r, c, runeType))
+                    var r = rand.Next(0, _size - 1);
+                    var c = rand.Next(0, _size - 1);
+
+                    for (var i = 1; i <= _size; i++)
                     {
-                        Grid[r, c].Type = runeType;
-                        Grid[r, c].IsActive = true;
-                        curRevealed++;
-                        break;
+                        var runeType = (RuneType)i;
+                        if (IsValid(r, c, runeType))
+                        {
+                            Grid[r, c].Type = runeType;
+                            Grid[r, c].IsActive = true;
+                            curRevealed++;
+                            break;
+                        }
                     }
                 }
             }
@@ -160,7 +169,13 @@ namespace Runedoku_Solver.Models
             return !IsInColumn(col, type) && !IsInRow(row, type) && !IsInBox(row, col, type);
         }
 
-        public bool Solve() => SolveInner(0, 0);
+        public bool Solve() 
+        {
+            lock (_lock) 
+            {
+                return SolveInner(0, 0);
+            }
+        }
         private bool SolveInner(int row, int col)
         {
             if (row == _size - 1 && col == _size)

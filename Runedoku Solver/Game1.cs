@@ -5,7 +5,9 @@ using Runedoku_Solver.Extensions;
 using Runedoku_Solver.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Runedoku_Solver
 {
@@ -116,7 +118,7 @@ namespace Runedoku_Solver
             }
             else if (IsKeyUp(keyboardState, Keys.S))
             {
-                _sudoku.Solve();
+                Task.Run(() => _sudoku.Solve());
             }
             else if (IsKeyUp(keyboardState, Keys.Escape))
             {

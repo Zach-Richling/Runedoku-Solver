@@ -23,6 +23,7 @@ namespace Runedoku_Solver.Models
         public Rune[,] Grid { get; }
 
         public bool PlaceActive { get; set; } = false;
+        public bool Unsolvable { get; private set; } = false;
 
         private object _lock = new object();
 
@@ -47,6 +48,7 @@ namespace Runedoku_Solver.Models
                 }
 
                 _hasNormalized = false;
+                Unsolvable = false;
             }
         }
 
@@ -173,7 +175,9 @@ namespace Runedoku_Solver.Models
         {
             lock (_lock) 
             {
-                return SolveInner(0, 0);
+                var result = SolveInner(0, 0);
+                Unsolvable = !result;
+                return result;
             }
         }
         private bool SolveInner(int row, int col)
@@ -248,7 +252,12 @@ namespace Runedoku_Solver.Models
                     if (((r >= 3 && r <= 5) || (c >= 3 && c <= 5))
                         && !(r >= 3 && r <= 5 && c >= 3 && c <= 5))
                     {
-                        batch.DrawRectangle((int)(startingX + (_availableWidth / _size) * r) + 1, (int)((_availableHeight / _size) * c) + 1, (int)_availableWidth / _size, (int)_availableHeight / _size, Color.LightGray);
+                        batch.DrawRectangle(
+                            (int)(startingX + (_availableWidth / _size) * r) + 1,
+                            (int)((_availableHeight / _size) * c) + 1,
+                            (int)_availableWidth / _size, (int)_availableHeight / _size,
+                            Color.LightGray
+                        );
                     }
                 }
             }
@@ -267,17 +276,27 @@ namespace Runedoku_Solver.Models
                     //Draw all rune textures centered on their position
                     if (rune.Type != RuneType.None) 
                     {
-                        batch.Draw(
-                            textures[rune.Type],
-                            rune.Position,
-                            null,
-                            rune.IsActive ? Color.Gray : Color.White,
-                            0f,
-                            new Vector2(runeWidth / 2, runeHeight / 2),
-                            Vector2.One,
-                            SpriteEffects.None,
-                            0f
-                        );
+                        try
+                        {
+                            Color color;
+
+                            if (rune.IsActive && Unsolvable) color = Color.DarkRed;
+                            else if (rune.IsActive) color = Color.Gray;
+                            else if (Unsolvable) color = Color.Red;
+                            else color = Color.White;
+
+                            batch.Draw(
+                                textures[rune.Type],
+                                rune.Position,
+                                null,
+                                color,
+                                0f,
+                                new Vector2(runeWidth / 2, runeHeight / 2),
+                                Vector2.One,
+                                SpriteEffects.None,
+                                0f
+                            );
+                        } catch ( Exception ex ) { }
                     }
                 }
 
